@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>泡泡玛特商城 - 支付</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .order-info {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .order-info h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+
+        .order-info p {
+            margin: 10px 0;
+            color: #666;
+        }
+
+        .price {
+            font-size: 24px;
+            color: #e74c3c;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .pay-button {
+            background-color: #07c160;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin: 10px;
+        }
+
+        .pay-button:hover {
+            background-color: #06ae56;
+        }
+
+        .pay-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .qrcode-container {
+            margin: 20px 0;
+        }
+
+        .qrcode-container img {
+            width: 200px;
+            height: 200px;
+            border-radius: 8px;
+            box-shadow: 0 0 8px #ccc;
+        }
+
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+
+        .error {
+            color: #dc3545;
+            padding: 10px;
+            background-color: #f8d7da;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+
+        .success {
+            color: #155724;
+            padding: 10px;
+            background-color: #d4edda;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .payment-status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-failed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>订单支付</h1>
+        <div class="order-info">
+            <h3>订单信息</h3>
+            <p id="product-name">商品名称：<span class="loading">加载中...</span></p>
+            <p id="order-id">订单号：<span class="loading">加载中...</span></p>
+            <p id="order-time">下单时间：<span class="loading">加载中...</span></p>
+        </div>
+        <div class="price" id="price">¥<span class="loading">0.00</span></div>
+        
+        <div id="payment-status" class="payment-status status-pending" style="display: none;">
+            等待支付中...
+        </div>
+        
+        <div class="qrcode-container" id="qrcode-container" style="display: none;">
+            <img id="pay-qrcode" src="" alt="微信支付二维码" />
+            <p>请使用微信扫码支付</p>
+        </div>
+        
+        <div id="button-container">
+            <button class="pay-button" id="generate-payment" onclick="generatePayment()">生成支付二维码</button>
+            <button class="pay-button" id="wechat-pay-direct" onclick="jumpToWechatPay()" style="background: #07c160; display: none;">🚀 直接跳转微信支付</button>
+            <button class="pay-button" id="check-payment" onclick="checkPaymentStatus()" style="display: none;">检查支付状态</button>
+            <button class="pay-button" id="refresh-qr" onclick="refreshQRCode()" style="display: none;">刷新二维码</button>
+        </div>
+        
+        <div id="message-area"></div>
+        
+        <a href="/" class="back-link">← 返回监控页面</a>
+    </div>
+
+    <script>
+        // 配置
+        const API_BASE = 'http://localhost:9999';
+        let currentOrderId = '';
+        let paymentCheckInterval = null;
+        let wechatPayUrl = ''; // 存储微信支付URL
+
+        // 获取URL参数
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // 显示消息
+        function showMessage(message, type = 'info') {
+            const messageArea = document.getElementById('message-area');
+            let className = '';
+            switch (type) {
+                case 'error': className = 'error'; break;
+                case 'success': className = 'success'; break;
+                default: className = 'loading'; break;
+            }
+            messageArea.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+
+        // 更新支付状态
+        function updatePaymentStatus(status, message) {
+            const statusElement = document.getElementById('payment-status');
+            statusElement.style.display = 'block';
+            statusElement.className = `payment-status status-${status}`;
+            statusElement.textContent = message;
+        }
+
+        // 生成支付二维码
+        async function generatePayment() {
+            try {
+                const token = localStorage.getItem('popmartSettings') ? 
+                    JSON.parse(localStorage.getItem('popmartSettings')).token : null;
+                
+                if (!token) {
+                    showMessage('请先登录', 'error');
+                    return;
+                }
+
+                showMessage('正在生成支付二维码...');
+                document.getElementById('generate-payment').disabled = true;
+
+                const response = await fetch(`${API_BASE}/proxy/api/payment/wechat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        orderId: currentOrderId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    const paymentData = result.data;
+                    wechatPayUrl = paymentData.wechatPayUrl; // 保存微信支付URL
+                    
+                    document.getElementById('pay-qrcode').src = paymentData.payQrcode;
+                    document.getElementById('qrcode-container').style.display = 'block';
+                    document.getElementById('generate-payment').style.display = 'none';
+                    document.getElementById('wechat-pay-direct').style.display = 'inline-block';
+                    document.getElementById('check-payment').style.display = 'inline-block';
+                    document.getElementById('refresh-qr').style.display = 'inline-block';
+                    
+                    updatePaymentStatus('pending', '请选择支付方式');
+                    showMessage('💳 支付二维码已生成！你可以扫码支付或直接跳转微信支付', 'success');
+                    
+                    // 开始自动检查支付状态
+                    startPaymentStatusCheck();
+                    
+                    // 🚀 如果是手机端，自动弹出跳转选择
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    if (isMobile) {
+                        setTimeout(() => {
+                            if (confirm('检测到您在手机端，是否直接跳转到微信支付？')) {
+                                jumpToWechatPay();
+                            }
+                        }, 1000);
+                    }
+                } else {
+                    throw new Error(result.message || '生成支付二维码失败');
+                }
+            } catch (error) {
+                console.error('生成支付二维码失败:', error);
+                showMessage('生成支付二维码失败: ' + error.message, 'error');
+                document.getElementById('generate-payment').disabled = false;
+            }
+        }
+
+        // 开始支付状态检查
+        function startPaymentStatusCheck() {
+            if (paymentCheckInterval) {
+                clearInterval(paymentCheckInterval);
+            }
+            
+            paymentCheckInterval = setInterval(checkPaymentStatus, 3000); // 每3秒检查一次
+        }
+
+        // 检查支付状态
+        async function checkPaymentStatus() {
+            try {
+                const token = localStorage.getItem('popmartSettings') ? 
+                    JSON.parse(localStorage.getItem('popmartSettings')).token : null;
+                
+                if (!token) {
+                    showMessage('请先登录', 'error');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE}/api/order/status/${currentOrderId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    const orderStatus = result.data.status;
+                    
+                    if (orderStatus === 'paid') {
+                        updatePaymentStatus('success', '支付成功！');
+                        showMessage('支付成功！订单已完成', 'success');
+                        
+                        // 停止状态检查
+                        if (paymentCheckInterval) {
+                            clearInterval(paymentCheckInterval);
+                        }
+                        
+                        // 隐藏支付相关按钮
+                        document.getElementById('check-payment').style.display = 'none';
+                        document.getElementById('refresh-qr').style.display = 'none';
+                        
+                        // 3秒后跳转
+                        setTimeout(() => {
+                            window.close();
+                            window.location.href = '/';
+                        }, 3000);
+                    } else if (orderStatus === 'failed') {
+                        updatePaymentStatus('failed', '支付失败');
+                        showMessage('支付失败，请重试', 'error');
+                        
+                        if (paymentCheckInterval) {
+                            clearInterval(paymentCheckInterval);
+                        }
+                    }
+                } else {
+                    console.error('检查支付状态失败:', result.message);
+                    // 对于状态检查失败，不显示错误，避免干扰用户
+                }
+            } catch (error) {
+                console.error('检查支付状态失败:', error);
+                // 对于网络错误，不显示错误消息，避免干扰用户
+            }
+        }
+
+        // 刷新二维码
+        function refreshQRCode() {
+            document.getElementById('qrcode-container').style.display = 'none';
+            document.getElementById('generate-payment').style.display = 'inline-block';
+            document.getElementById('check-payment').style.display = 'none';
+            document.getElementById('refresh-qr').style.display = 'none';
+            document.getElementById('generate-payment').disabled = false;
+            
+            if (paymentCheckInterval) {
+                clearInterval(paymentCheckInterval);
+            }
+            
+            showMessage('请重新生成支付二维码');
+        }
+
+        // 🚀 直接跳转微信支付
+        function jumpToWechatPay() {
+            if (wechatPayUrl) {
+                showMessage('🚀 正在跳转微信支付页面...', 'success');
+                
+                // 检测设备类型
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                if (isMobile) {
+                    // 手机端直接跳转
+                    window.location.href = wechatPayUrl;
+                } else {
+                    // PC端新窗口打开
+                    window.open(wechatPayUrl, '_blank', 'width=375,height=667');
+                }
+                
+                // 开始检查支付状态
+                startPaymentStatusCheck();
+            } else {
+                showMessage('请先生成支付二维码', 'error');
+            }
+        }
+
+        // 模拟加载订单信息
+        function loadOrderInfo() {
+            currentOrderId = getUrlParameter('orderId');
+            
+            if (!currentOrderId) {
+                showMessage('订单ID缺失', 'error');
+                return;
+            }
+
+            // 模拟订单信息（实际应该从API获取）
+            document.getElementById('product-name').innerHTML = '商品名称：SKULLPANDA Urban 盲盒';
+            document.getElementById('order-id').innerHTML = `订单号：${currentOrderId}`;
+            document.getElementById('order-time').innerHTML = `下单时间：${new Date().toLocaleString()}`;
+            document.getElementById('price').innerHTML = '¥59.00';
+            
+            showMessage('订单信息加载完成，点击生成支付二维码开始支付');
+        }
+
+        // 页面卸载时清理定时器
+        window.addEventListener('beforeunload', () => {
+            if (paymentCheckInterval) {
+                clearInterval(paymentCheckInterval);
+            }
+        });
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOrderInfo();
+        });
+    </script>
+</body>
+</html> 

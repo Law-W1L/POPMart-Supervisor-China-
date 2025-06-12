@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统功能测试 - Popmart监控</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { border-color: #28a745; background: #d4edda; color: #155724; }
+        .error { border-color: #dc3545; background: #f8d7da; color: #721c24; }
+        .device-info {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .jump-simulation {
+            border: 2px dashed #007bff;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Popmart监控系统功能测试</h1>
+    
+    <!-- 设备信息 -->
+    <div class="test-section">
+        <h2>📱 设备检测</h2>
+        <div class="device-info" id="deviceInfo">检测中...</div>
+    </div>
+    
+    <!-- 测试1：创建虚拟新品 -->
+    <div class="test-section">
+        <h2>🔄 测试1：创建虚拟新品</h2>
+        <button class="test-button" onclick="triggerDiscovery()">触发新品发现</button>
+        <div class="result" id="discovery-result">等待测试...</div>
+    </div>
+    
+    <!-- 测试2：获取新品列表 -->
+    <div class="test-section">
+        <h2>📋 测试2：获取新品列表</h2>
+        <button class="test-button" onclick="getProducts()">获取发现的新品</button>
+        <div class="result" id="products-result">等待测试...</div>
+    </div>
+    
+    <!-- 测试3：模拟移动端购买 -->
+    <div class="test-section">
+        <h2>🛒 测试3：模拟移动端购买</h2>
+        <button class="test-button" onclick="simulatePurchase()">模拟快速购买</button>
+        <div class="result" id="purchase-result">等待测试...</div>
+    </div>
+    
+    <!-- 测试4：跳转逻辑验证 -->
+    <div class="test-section">
+        <h2>🚀 测试4：跳转逻辑验证</h2>
+        <div class="jump-simulation">
+            <h3>模拟跳转场景</h3>
+            <button class="test-button" onclick="simulateJump('miniprogram')">模拟小程序跳转</button>
+            <button class="test-button" onclick="simulateJump('h5')">模拟H5跳转</button>
+            <button class="test-button" onclick="simulateJump('wechatpay')">模拟微信支付跳转</button>
+        </div>
+        <div class="result" id="jump-result">等待测试...</div>
+    </div>
+    
+    <!-- 测试5：完整流程模拟 -->
+    <div class="test-section">
+        <h2>⚡ 测试5：完整流程模拟</h2>
+        <button class="test-button" onclick="runFullTest()">运行完整测试</button>
+        <div class="result" id="full-test-result">等待测试...</div>
+    </div>
+
+    <script>
+        // 设备检测
+        const DeviceDetector = {
+            isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+            isWeChat: /MicroMessenger/i.test(navigator.userAgent),
+            isIOS: /iPhone|iPad|iPod/i.test(navigator.userAgent),
+            isAndroid: /Android/i.test(navigator.userAgent)
+        };
+        
+        // 显示设备信息
+        function showDeviceInfo() {
+            const info = `
+设备类型: ${DeviceDetector.isMobile ? '移动设备' : 'PC设备'}
+微信环境: ${DeviceDetector.isWeChat ? '是' : '否'}
+iOS设备: ${DeviceDetector.isIOS ? '是' : '否'}
+Android设备: ${DeviceDetector.isAndroid ? '是' : '否'}
+用户代理: ${navigator.userAgent}
+            `;
+            document.getElementById('deviceInfo').textContent = info;
+        }
+        
+        // 测试1：触发新品发现
+        async function triggerDiscovery() {
+            const resultDiv = document.getElementById('discovery-result');
+            resultDiv.textContent = '正在触发新品发现...';
+            
+            try {
+                const response = await fetch('/api/trigger-discovery', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ 成功！\n${JSON.stringify(result, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 失败：${error.message}`;
+            }
+        }
+        
+        // 测试2：获取新品列表
+        async function getProducts() {
+            const resultDiv = document.getElementById('products-result');
+            resultDiv.textContent = '正在获取新品列表...';
+            
+            try {
+                const response = await fetch('/api/discovered-products');
+                const result = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ 获取成功！发现 ${result.data.count} 个新品\n${JSON.stringify(result, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 失败：${error.message}`;
+            }
+        }
+        
+        // 测试3：模拟移动端购买
+        async function simulatePurchase() {
+            const resultDiv = document.getElementById('purchase-result');
+            resultDiv.textContent = '正在模拟移动端购买...';
+            
+            try {
+                const response = await fetch('/api/mobile/quick-purchase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        productId: 'test_molly_space_001',
+                        productName: 'MOLLY Space Series'
+                    })
+                });
+                
+                const result = await response.json();
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ 购买模拟成功！\n${JSON.stringify(result, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 购买失败：${error.message}`;
+            }
+        }
+        
+        // 测试4：跳转逻辑验证
+        function simulateJump(type) {
+            const resultDiv = document.getElementById('jump-result');
+            let message = '';
+            
+            switch(type) {
+                case 'miniprogram':
+                    message = `🔄 模拟小程序跳转
+设备检测: ${DeviceDetector.isMobile ? '移动设备' : 'PC设备'}
+微信环境: ${DeviceDetector.isWeChat ? '是' : '否'}
+跳转策略: ${DeviceDetector.isWeChat && DeviceDetector.isMobile ? 
+'直接跳转小程序' : '引导打开微信'}
+跳转URL: weixin://dl/business/?businessType=9&appid=wx633d41b25e0fabf4&pagepath=pages/goods/detail?id=test_123`;
+                    break;
+                    
+                case 'h5':
+                    message = `🌐 模拟H5页面跳转
+设备类型: ${DeviceDetector.isMobile ? '移动设备' : 'PC设备'}
+跳转策略: ${DeviceDetector.isMobile ? '直接跳转' : '新窗口打开'}
+跳转URL: https://popmart.com/product/test_123?from=monitor`;
+                    break;
+                    
+                case 'wechatpay':
+                    message = `💰 模拟微信支付跳转
+支付类型: 移动端网页支付
+跳转策略: 直接跳转微信支付页面
+支付URL: https://wx.tenpay.com/cgi-bin/mmpayweb-bin/checkmweb?prepay_id=mock_prepay_id_${Date.now()}`;
+                    break;
+            }
+            
+            resultDiv.className = 'result success';
+            resultDiv.textContent = message;
+        }
+        
+        // 测试5：完整流程模拟
+        async function runFullTest() {
+            const resultDiv = document.getElementById('full-test-result');
+            resultDiv.textContent = '开始运行完整测试流程...\n';
+            
+            try {
+                // 步骤1：触发新品发现
+                resultDiv.textContent += '步骤1: 触发新品发现...\n';
+                const discoveryResponse = await fetch('/api/trigger-discovery', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const discoveryResult = await discoveryResponse.json();
+                resultDiv.textContent += `✅ 新品发现成功: ${discoveryResult.data.name}\n\n`;
+                
+                // 步骤2：获取新品列表
+                resultDiv.textContent += '步骤2: 获取新品列表...\n';
+                const productsResponse = await fetch('/api/discovered-products');
+                const productsResult = await productsResponse.json();
+                resultDiv.textContent += `✅ 获取到 ${productsResult.data.count} 个新品\n\n`;
+                
+                // 步骤3：模拟手机收到推送
+                resultDiv.textContent += '步骤3: 模拟手机收到推送通知...\n';
+                resultDiv.textContent += `📱 推送内容: "🔥 泡泡马特新品上架！${discoveryResult.data.name}"\n\n`;
+                
+                // 步骤4：模拟用户点击购买
+                resultDiv.textContent += '步骤4: 模拟用户点击购买...\n';
+                const purchaseResponse = await fetch('/api/mobile/quick-purchase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        productId: discoveryResult.data.id,
+                        productName: discoveryResult.data.name
+                    })
+                });
+                const purchaseResult = await purchaseResponse.json();
+                resultDiv.textContent += `✅ 订单创建成功: ${purchaseResult.data.orderId}\n\n`;
+                
+                // 步骤5：模拟跳转到支付页面
+                resultDiv.textContent += '步骤5: 模拟跳转到支付页面...\n';
+                resultDiv.textContent += `🚀 支付跳转: ${purchaseResult.data.wechatPayUrl}\n\n`;
+                
+                resultDiv.textContent += '🎉 完整流程测试成功！系统运行正常！\n';
+                resultDiv.textContent += '\n=== 测试总结 ===\n';
+                resultDiv.textContent += '✅ 新品监控：正常\n';
+                resultDiv.textContent += '✅ 数据存储：正常\n';
+                resultDiv.textContent += '✅ 移动端API：正常\n';
+                resultDiv.textContent += '✅ 购买流程：正常\n';
+                resultDiv.textContent += '✅ 支付跳转：正常\n';
+                
+                resultDiv.className = 'result success';
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent += `❌ 测试失败：${error.message}`;
+            }
+        }
+        
+        // 页面加载时显示设备信息
+        window.onload = function() {
+            showDeviceInfo();
+        };
+    </script>
+</body>
+</html> 

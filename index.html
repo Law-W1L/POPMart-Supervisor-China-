@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>泡泡玛特商城 - 新品监控</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .login-container {
+            flex: 1;
+            min-width: 400px;
+        }
+
+        .control-container {
+            flex: 1;
+            min-width: 350px;
+            text-align: left;
+        }
+
+        .qrcode-container {
+            margin: 20px 0;
+        }
+
+        .qrcode-container img {
+            width: 220px;
+            height: 220px;
+            border-radius: 12px;
+            box-shadow: 0 0 8px #ccc;
+        }
+
+        .qrcode-container p {
+            margin-top: 15px;
+            color: #666;
+            font-size: 16px;
+        }
+
+        #status, #monitor-status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+            color: #666;
+        }
+
+        #login-area {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #login-area:hover {
+            transform: scale(1.02);
+        }
+
+        .monitor-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .monitor-info h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .monitor-info p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .control-section h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .checkbox-group {
+            margin-bottom: 15px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input[type="email"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .product-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            background-color: white;
+        }
+
+        .product-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 10px;
+        }
+
+        .product-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .product-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .product-price {
+            color: #e74c3c;
+            font-size: 16px;
+            margin: 5px 0;
+        }
+
+        .product-time {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .purchase-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .purchase-link:hover {
+            text-decoration: underline;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-success {
+            background-color: #28a745;
+        }
+
+        .status-warning {
+            background-color: #ffc107;
+        }
+
+        .status-error {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- 登录区域 -->
+        <div class="login-container">
+            <div class="container">
+                <h1>泡泡玛特商城</h1>
+                <div id="login-area">
+                    <div class="qrcode-container">
+                        <img id="qrcode-image" alt="微信登录二维码" style="display: none;" />
+                        <p id="qrcode-text">点击显示登录二维码</p>
+                    </div>
+                </div>
+                <div id="status">等待登录...</div>
+                <div id="monitor-status" style="display: none;">准备监控新品...</div>
+                <div class="monitor-info">
+                    <h3>监控说明</h3>
+                    <p>• 登录后将自动开始监控新品</p>
+                    <p>• 发现新品将自动创建订单</p>
+                    <p>• 自动跳转到支付页面</p>
+                    <p>• 每5秒检查一次新品</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="control-container">
+            <div class="container">
+                <h2>监控控制</h2>
+                
+                <!-- 监控控制 -->
+                <div class="control-section">
+                    <h3>监控状态</h3>
+                    <div class="control-buttons">
+                        <button id="startMonitor" class="btn btn-primary">开始监控</button>
+                        <button id="stopMonitor" class="btn btn-secondary" disabled>停止监控</button>
+                    </div>
+                    <div class="control-buttons">
+                        <button onclick="testPushNotification()" class="btn btn-primary" style="background-color: #28a745;">
+                            📱 测试推送
+                        </button>
+                        <button onclick="window.open('/mobile.html', '_blank')" class="btn btn-primary" style="background-color: #17a2b8;">
+                            📲 手机端
+                        </button>
+                    </div>
+                    <div>
+                        <span class="status-indicator status-warning"></span>
+                        <span id="monitoring-status">未启动</span>
+                    </div>
+                </div>
+
+                <!-- 监控设置 -->
+                <div class="control-section">
+                    <h3>监控设置</h3>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="enableNotification" checked>
+                            启用浏览器通知
+                        </label>
+                        <label>
+                            <input type="checkbox" id="autoPurchase" checked>
+                            自动购买新品
+                        </label>
+                        <label>
+                            <input type="checkbox" id="enableEmail" checked>
+                            启用邮件通知
+                        </label>
+                    </div>
+                    
+                    <form id="emailForm">
+                        <div class="form-group">
+                            <label for="email">邮箱地址：</label>
+                            <input type="email" id="email" value="992557645@qq.com" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </form>
+                </div>
+
+                <!-- 发现的新品 -->
+                <div class="control-section">
+                    <h3>发现的新品</h3>
+                    <div id="monitoredProducts" class="product-list">
+                        <p style="color: #666; text-align: center;">暂无发现新品</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知区域 -->
+    <div id="notification" style="display: none;"></div>
+
+    <script src="script.js"></script>
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html> 

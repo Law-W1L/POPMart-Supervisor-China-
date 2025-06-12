@@ -1,0 +1,9 @@
+PORT=3000
+NODE_ENV=development
+JWT_SECRET=your_very_secret_key_here
+WECHAT_APP_ID=your_wechat_app_id
+WECHAT_APP_SECRET=your_wechat_app_secret
+WECHAT_REDIRECT_URI=http://localhost:3000/api/wx-login/callback
+WECHAT_PAY_NOTIFY_URL=http://localhost:3000/api/payment/wechat/notify
+POPMART_API_BASE_URL=https://api.popmart.com
+POPMART_API_KEY=your_popmart_api_key
