@@ -1,3 +1,7 @@
+PS:本代码只供代码学术讨论，如有任何商业用途，与本人无关！
+
+
+
 # 🎯 Popmart Auto Monitor & Purchase System
 
 An automated Popmart product monitoring and purchasing system that supports 24/7 PC monitoring, mobile quick purchase, WeChat login integration, and real-time cross-device synchronization.
@@ -325,3 +329,4 @@ This project is for educational and research purposes only. Please comply with r
 ⭐ If this project helps you, please give us a star!
 
 📧 Contact: [992557645@qq.com]
+
